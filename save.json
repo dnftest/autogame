@@ -1,0 +1,195 @@
+{
+  "version": 1,
+  "gold": 3044716986,
+  "gems": 106520,
+  "heroLevel": 196,
+  "heroExp": 260075091200,
+  "heroClassId": "wind_sniper",
+  "currentStage": 258,
+  "maxUnlockedStage": 258,
+  "isFarmingRepeat": false,
+  "autoBossChallenge": true,
+  "heroBossMaxUnlockedTier": 58,
+  "heroBossCooldownSec": 0,
+  "autoHeroBoss": true,
+  "heroBossAutoTier": 58,
+  "selectedHeroBossContracts": [
+    "short_timer",
+    "iron_hp",
+    "no_freeze"
+  ],
+  "stats": {
+    "attack": 341,
+    "skillDamage": 339,
+    "attackSpeed": 75,
+    "critRate": 120,
+    "critDamage": 315
+  },
+  "ownedEquipment": {
+    "wpn_iron_sword": {
+      "count": 2,
+      "enhanceLevel": 4
+    },
+    "rng_emerald": {
+      "count": 0,
+      "enhanceLevel": 2
+    },
+    "rng_sapphire": {
+      "count": 0,
+      "enhanceLevel": 5
+    },
+    "arm_guardian_aegis": {
+      "count": 3,
+      "enhanceLevel": 104
+    },
+    "rng_ruby": {
+      "count": 2,
+      "enhanceLevel": 104
+    },
+    "wpn_knight_blade": {
+      "count": 2,
+      "enhanceLevel": 6
+    },
+    "wpn_silver_lance": {
+      "count": 1,
+      "enhanceLevel": 21
+    },
+    "arm_paladin_plate": {
+      "count": 6,
+      "enhanceLevel": 0
+    },
+    "rng_dragon_seal": {
+      "count": 7,
+      "enhanceLevel": 0
+    },
+    "wpn_dragon_slayer": {
+      "count": 5,
+      "enhanceLevel": 103
+    },
+    "arm_steel_plate": {
+      "count": 2,
+      "enhanceLevel": 0
+    },
+    "arm_chainmail": {
+      "count": 1,
+      "enhanceLevel": 0
+    },
+    "arm_leather": {
+      "count": 2,
+      "enhanceLevel": 0
+    }
+  },
+  "equipped": {
+    "weapon": "wpn_dragon_slayer",
+    "armor": "arm_guardian_aegis",
+    "ring": "rng_ruby"
+  },
+  "ownedPets": {
+    "pet_forest_wolf": {
+      "level": 148
+    },
+    "pet_slime_pup": {
+      "level": 275
+    },
+    "pet_baby_dragon": {
+      "level": 16
+    },
+    "pet_owl_mage": {
+      "level": 74
+    },
+    "pet_griffin": {
+      "level": 37
+    },
+    "pet_phoenix": {
+      "level": 13
+    },
+    "pet_frost_fenrir": {
+      "level": 15
+    },
+    "pet_thunder_kirin": {
+      "level": 6
+    },
+    "pet_nine_tail": {
+      "level": 14
+    },
+    "pet_astral_tiger": {
+      "level": 5
+    },
+    "pet_eternal_dragon": {
+      "level": 2
+    },
+    "pet_chrono_golem": {
+      "level": 2
+    },
+    "pet_void_leviathan": {
+      "level": 1
+    }
+  },
+  "equippedPetId": "pet_forest_wolf",
+  "equippedPetsByBranch": {
+    "knight": "pet_forest_wolf",
+    "archer": "pet_forest_wolf",
+    "mage": "pet_forest_wolf"
+  },
+  "petSummonPity": 0,
+  "ownedRelics": {
+    "relic_war_horn": {
+      "level": 36
+    },
+    "relic_golden_chalice": {
+      "level": 90
+    },
+    "relic_sage_tome": {
+      "level": 34
+    },
+    "relic_guardian_emblem": {
+      "level": 21
+    },
+    "relic_assassin_eye": {
+      "level": 14
+    },
+    "relic_dragon_heart": {
+      "level": 9
+    },
+    "relic_eldorado_key": {
+      "level": 4
+    },
+    "relic_crimson_sigil": {
+      "level": 2
+    },
+    "relic_valkyrie_wing": {
+      "level": 5
+    },
+    "relic_gale_crown": {
+      "level": 5
+    },
+    "relic_chrono_hourglass": {
+      "level": 1
+    }
+  },
+  "relicSummonPity": 0,
+  "skillLevels": {
+    "power_strike": 115,
+    "shadow_step": 115,
+    "whirlwind": 115,
+    "chain_lightning": 115,
+    "poison_cloud": 115,
+    "frost_nova": 115,
+    "execution": 115,
+    "meteor_slash": 115,
+    "battle_cry": 115,
+    "sword_rain": 115,
+    "holy_judgment": 115,
+    "dragon_breath": 115
+  },
+  "autoSkill": true,
+  "autoTagSwitch": true,
+  "fxEnabled": false,
+  "soundEnabled": false,
+  "gameSpeed": 3,
+  "autoUpgradeStats": true,
+  "autoUpgradeEquipment": true,
+  "autoUpgradeSkills": true,
+  "lastSavedAt": 1795771802836,
+  "numberSquishV1": true
+}

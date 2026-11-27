@@ -16,6 +16,7 @@ export function App() {
     const store = useGameStore.getState();
     store.loadGame();
     store.checkOfflineProgress();
+    void store.syncSaveFileOnBoot();
     void assetLoader.loadAssets();
 
     if (Capacitor.isNativePlatform()) {

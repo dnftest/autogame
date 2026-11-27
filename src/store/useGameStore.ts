@@ -254,6 +254,9 @@ export interface GameState {
 
   saveGame: (nowMs?: number) => void;
   loadGame: () => void;
+  syncSaveFileOnBoot: () => Promise<void>;
+  exportSaveJson: () => string;
+  importSaveJson: (raw: string) => boolean;
   resetGame: () => void;
 }
 
@@ -1279,43 +1282,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   saveGame: (nowMs = Date.now()) => {
     const s = get();
-    const payload: PersistedSaveData = {
-      version: SAVE_SCHEMA_VERSION,
-      gold: s.gold,
-      gems: s.gems,
-      heroLevel: s.heroLevel,
-      heroExp: s.heroExp,
-      heroClassId: s.heroClassId,
-      currentStage: s.currentStage,
-      maxUnlockedStage: s.maxUnlockedStage,
-      isFarmingRepeat: s.isFarmingRepeat,
-      autoBossChallenge: s.autoBossChallenge,
-      heroBossMaxUnlockedTier: s.heroBossMaxUnlockedTier,
-      heroBossCooldownSec: Number(s.heroBossCooldownSec.toFixed(1)),
-      autoHeroBoss: s.autoHeroBoss,
-      heroBossAutoTier: s.heroBossAutoTier,
-      selectedHeroBossContracts: s.selectedHeroBossContracts,
-      stats: s.stats,
-      ownedEquipment: s.ownedEquipment,
-      equipped: s.equipped,
-      ownedPets: s.ownedPets,
-      equippedPetId: s.equippedPetId,
-      equippedPetsByBranch: s.equippedPetsByBranch,
-      petSummonPity: s.petSummonPity,
-      ownedRelics: s.ownedRelics,
-      relicSummonPity: s.relicSummonPity,
-      skillLevels: s.skillLevels,
-      autoSkill: s.autoSkill,
-      autoTagSwitch: s.autoTagSwitch,
-      fxEnabled: s.fxEnabled,
-      soundEnabled: s.soundEnabled,
-      gameSpeed: s.gameSpeed,
-      autoUpgradeStats: s.autoUpgradeStats,
-      autoUpgradeEquipment: s.autoUpgradeEquipment,
-      autoUpgradeSkills: s.autoUpgradeSkills,
-      lastSavedAt: nowMs,
-      numberSquishV1: true,
-    };
+    const payload = buildPersistedSavePayload(s, nowMs);
 
     try {
       if (typeof localStorage !== 'undefined') {
@@ -1324,6 +1291,15 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ lastSavedAt: nowMs });
     } catch {
       // Ignore storage quota / private mode failures
+    }
+
+    if (canUseSaveFileApi()) {
+      void fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      }).catch(() => {});
     }
   },
 
@@ -1335,161 +1311,106 @@ export const useGameStore = create<GameState>((set, get) => ({
       const parsed = JSON.parse(raw) as Partial<PersistedSaveData>;
       if (parsed.version !== SAVE_SCHEMA_VERSION) return;
 
-      const base = createInitialCoreState();
-      const rawStats = parsed.stats ?? {};
-      const stats: StatLevels = {
-        attack: rawStats.attack ?? base.stats.attack,
-        skillDamage: rawStats.skillDamage ?? rawStats.maxHp ?? base.stats.skillDamage,
-        attackSpeed: rawStats.attackSpeed ?? base.stats.attackSpeed,
-        critRate: rawStats.critRate ?? base.stats.critRate,
-        critDamage: rawStats.critDamage ?? base.stats.critDamage,
-      };
-      const ownedEquipment = parsed.ownedEquipment ?? base.ownedEquipment;
-      const equipped = { ...base.equipped, ...parsed.equipped };
-      const ownedPets = parsed.ownedPets ?? {};
-      const legacyPetId =
-        parsed.equippedPetId && ownedPets[parsed.equippedPetId]?.level > 0
-          ? parsed.equippedPetId
-          : null;
-      const rawByBranch = parsed.equippedPetsByBranch;
-      const equippedPetsByBranch: Record<ClassBranch, string | null> = rawByBranch
-        ? {
-            knight:
-              rawByBranch.knight && ownedPets[rawByBranch.knight]?.level > 0
-                ? rawByBranch.knight
-                : null,
-            archer:
-              rawByBranch.archer && ownedPets[rawByBranch.archer]?.level > 0
-                ? rawByBranch.archer
-                : null,
-            mage:
-              rawByBranch.mage && ownedPets[rawByBranch.mage]?.level > 0
-                ? rawByBranch.mage
-                : null,
-          }
-        : {
-            knight: legacyPetId,
-            archer: legacyPetId,
-            mage: legacyPetId,
-          };
-      const loadedClassId =
-        parsed.heroClassId && HERO_CLASSES_BY_ID[parsed.heroClassId]
-          ? parsed.heroClassId
-          : 'novice';
-      const loadedBranch = (
-        HERO_CLASSES_BY_ID[loadedClassId] ?? HERO_CLASSES_BY_ID.novice
-      ).branch;
-      const equippedPetId = equippedPetsByBranch[loadedBranch] ?? legacyPetId;
-      const ownedRelics = parsed.ownedRelics ?? {};
-      const heroLevel = Math.max(1, parsed.heroLevel ?? 1);
-      const heroBossMaxUnlockedTier = Math.max(1, parsed.heroBossMaxUnlockedTier ?? 1);
-      const heroBossAutoTier = Math.max(
-        1,
-        Math.min(heroBossMaxUnlockedTier, parsed.heroBossAutoTier ?? heroBossMaxUnlockedTier),
-      );
-      const selectedHeroBossContracts = Array.isArray(
-        parsed.selectedHeroBossContracts,
-      )
-        ? parsed.selectedHeroBossContracts.filter(isValidHeroBossContractId)
-        : [];
-      const petSummonPity = Math.max(
-        0,
-        Math.min(SUMMON_PITY_THRESHOLD - 1, Math.floor(parsed.petSummonPity ?? 0)),
-      );
-      const relicSummonPity = Math.max(
-        0,
-        Math.min(
-          SUMMON_PITY_THRESHOLD - 1,
-          Math.floor(parsed.relicSummonPity ?? 0),
-        ),
-      );
-      const soundEnabled = parsed.soundEnabled ?? true;
-      soundEngine.setEnabled(soundEnabled);
+      set(parsePersistedSavePatch(parsed));
+    } catch {
+      // Ignore corrupted save data and keep defaults
+    }
+  },
 
-      const mergedSkillLevels = createSkillMap(1);
-      if (parsed.skillLevels) {
-        for (const skill of SKILLS) {
-          const savedLv = parsed.skillLevels[skill.id];
-          if (typeof savedLv === 'number' && savedLv >= 1) {
-            mergedSkillLevels[skill.id] = savedLv;
+  syncSaveFileOnBoot: async () => {
+    if (!canUseSaveFileApi()) return;
+
+    let localRaw: string | null = null;
+    let localLastSavedAt = 0;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localRaw = localStorage.getItem(SAVE_STORAGE_KEY);
+        if (localRaw) {
+          const parsedLocal = JSON.parse(localRaw) as Partial<PersistedSaveData>;
+          if (parsedLocal.version === SAVE_SCHEMA_VERSION) {
+            localLastSavedAt = parsedLocal.lastSavedAt ?? 0;
+          } else {
+            localRaw = null;
           }
         }
       }
+    } catch {
+      localRaw = null;
+    }
 
-      const nowMs = Date.now();
-      const elapsedSec =
-        typeof parsed.lastSavedAt === 'number'
-          ? Math.max(0, (nowMs - parsed.lastSavedAt) / 1000)
-          : 0;
-      const savedBossCdSec =
-        typeof parsed.heroBossCooldownSec === 'number'
-          ? Math.max(0, parsed.heroBossCooldownSec - elapsedSec)
-          : typeof parsed.heroBossCooldownUntil === 'number'
-            ? Math.max(0, (parsed.heroBossCooldownUntil - nowMs) / 1000)
-            : 0;
+    try {
+      const res = await fetch('/api/save');
+      if (!res.ok) return;
+      const json = (await res.json()) as {
+        exists?: boolean;
+        data?: Partial<PersistedSaveData> | null;
+      };
 
-      const loadedStage = Math.max(1, parsed.currentStage ?? 1);
-      let loadedGold = Math.max(0, parsed.gold ?? base.gold);
-      let loadedExp = Math.max(0, parsed.heroExp ?? 0);
+      const fileData = json?.exists && json.data ? json.data : null;
+      if (fileData && fileData.version === SAVE_SCHEMA_VERSION) {
+        const fileLastSavedAt = fileData.lastSavedAt ?? 0;
+        if (!localRaw || fileLastSavedAt > localLastSavedAt) {
+          const patch = parsePersistedSavePatch(fileData);
+          set({
+            ...patch,
+            battleRestartToken: get().battleRestartToken + 1,
+            banner: {
+              id: bannerSeq++,
+              text: 'save.json 세이브를 불러왔습니다!',
+              tone: 'success',
+            },
+          });
+          if (typeof localStorage !== 'undefined') {
+            try {
+              localStorage.setItem(
+                SAVE_STORAGE_KEY,
+                JSON.stringify(buildPersistedSavePayload(get(), fileLastSavedAt || Date.now())),
+              );
+            } catch {
+              // ignore
+            }
+          }
+          get().checkOfflineProgress();
+          return;
+        }
+        if (localRaw && localLastSavedAt > fileLastSavedAt) {
+          get().saveGame(localLastSavedAt);
+        }
+      } else if (localRaw) {
+        get().saveGame(localLastSavedAt || Date.now());
+      }
+    } catch {
+      // Ignore offline/static hosting environments where /api/save is unavailable
+    }
+  },
 
-      if (!parsed.numberSquishV1) {
-        const oldStageGold = 12 * Math.pow(1.18, Math.max(0, loadedStage - 1));
-        const newStageGold = 5 * Math.pow(1.09, Math.max(0, loadedStage - 1));
-        const goldRatio = Math.min(1, newStageGold / Math.max(1, oldStageGold));
-        loadedGold = Math.max(0, Math.round(loadedGold * goldRatio));
+  exportSaveJson: () => {
+    return JSON.stringify(buildPersistedSavePayload(get(), Date.now()), null, 2);
+  },
 
-        const oldReqExp = Math.floor(
-          50 * Math.pow(1.22, Math.max(0, heroLevel - 1)),
-        );
-        const newReqExp = calcExpToNextLevel(heroLevel);
-        const expProgressRatio = Math.min(
-          0.99,
-          Math.max(0, loadedExp / Math.max(1, oldReqExp)),
-        );
-        loadedExp = Math.floor(expProgressRatio * newReqExp);
+  importSaveJson: (raw) => {
+    try {
+      const parsed = JSON.parse(raw) as Partial<PersistedSaveData>;
+      if (!parsed || typeof parsed !== 'object' || parsed.version !== SAVE_SCHEMA_VERSION) {
+        get().setBanner('올바른 save.json 파일이 아닙니다.', 'danger');
+        return false;
       }
 
+      const patch = parsePersistedSavePatch(parsed);
       set({
-        gold: loadedGold,
-        gems: Math.max(0, parsed.gems ?? base.gems),
-        heroLevel,
-        heroExp: loadedExp,
-        heroClassId: loadedClassId,
-        currentStage: loadedStage,
-        maxUnlockedStage: Math.max(1, parsed.maxUnlockedStage ?? 1),
-        currentWave: 1,
-        isBossFight: false,
-        isFarmingRepeat: Boolean(parsed.isFarmingRepeat),
-        autoBossChallenge: parsed.autoBossChallenge ?? true,
-        heroBossMaxUnlockedTier,
-        heroBossCooldownSec: savedBossCdSec,
-        activeHeroBossTier: null,
-        autoHeroBoss: parsed.autoHeroBoss ?? false,
-        heroBossAutoTier,
-        heroBossAutoRetryAfter: 0,
-        selectedHeroBossContracts,
-        stats,
-        ownedEquipment,
-        equipped,
-        ownedPets,
-        equippedPetId,
-        equippedPetsByBranch,
-        petSummonPity,
-        ownedRelics,
-        relicSummonPity,
-        skillLevels: mergedSkillLevels,
-        autoSkill: parsed.autoSkill ?? true,
-        autoTagSwitch: parsed.autoTagSwitch ?? true,
-        fxEnabled: parsed.fxEnabled ?? true,
-        soundEnabled,
-        gameSpeed: parsed.gameSpeed === 2 || parsed.gameSpeed === 3 ? parsed.gameSpeed : 1,
-        autoUpgradeStats: parsed.autoUpgradeStats ?? false,
-        autoUpgradeEquipment: parsed.autoUpgradeEquipment ?? false,
-        autoUpgradeSkills: parsed.autoUpgradeSkills ?? false,
-        lastSavedAt: parsed.lastSavedAt ?? Date.now(),
+        ...patch,
+        battleRestartToken: get().battleRestartToken + 1,
+        banner: {
+          id: bannerSeq++,
+          text: '세이브 파일을 불러왔습니다!',
+          tone: 'success',
+        },
       });
+      get().saveGame(patch.lastSavedAt ?? Date.now());
+      return true;
     } catch {
-      // Ignore corrupted save data and keep defaults
+      get().setBanner('세이브 파일 형식을 읽을 수 없습니다.', 'danger');
+      return false;
     }
   },
 
@@ -1501,6 +1422,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     } catch {
       // ignore
     }
+    if (canUseSaveFileApi()) {
+      void fetch('/api/save', { method: 'DELETE' }).catch(() => {});
+    }
     const fresh = createInitialCoreState();
     soundEngine.setEnabled(true);
     set({
@@ -1510,3 +1434,203 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 }));
+
+function canUseSaveFileApi(): boolean {
+  if (typeof fetch !== 'function') return false;
+  if (typeof window === 'undefined') return false;
+  const protocol = window.location?.protocol ?? '';
+  return protocol === 'http:' || protocol === 'https:';
+}
+
+function buildPersistedSavePayload(
+  s: GameState,
+  nowMs: number,
+): PersistedSaveData {
+  return {
+    version: SAVE_SCHEMA_VERSION,
+    gold: s.gold,
+    gems: s.gems,
+    heroLevel: s.heroLevel,
+    heroExp: s.heroExp,
+    heroClassId: s.heroClassId,
+    currentStage: s.currentStage,
+    maxUnlockedStage: s.maxUnlockedStage,
+    isFarmingRepeat: s.isFarmingRepeat,
+    autoBossChallenge: s.autoBossChallenge,
+    heroBossMaxUnlockedTier: s.heroBossMaxUnlockedTier,
+    heroBossCooldownSec: Number(s.heroBossCooldownSec.toFixed(1)),
+    autoHeroBoss: s.autoHeroBoss,
+    heroBossAutoTier: s.heroBossAutoTier,
+    selectedHeroBossContracts: s.selectedHeroBossContracts,
+    stats: s.stats,
+    ownedEquipment: s.ownedEquipment,
+    equipped: s.equipped,
+    ownedPets: s.ownedPets,
+    equippedPetId: s.equippedPetId,
+    equippedPetsByBranch: s.equippedPetsByBranch,
+    petSummonPity: s.petSummonPity,
+    ownedRelics: s.ownedRelics,
+    relicSummonPity: s.relicSummonPity,
+    skillLevels: s.skillLevels,
+    autoSkill: s.autoSkill,
+    autoTagSwitch: s.autoTagSwitch,
+    fxEnabled: s.fxEnabled,
+    soundEnabled: s.soundEnabled,
+    gameSpeed: s.gameSpeed,
+    autoUpgradeStats: s.autoUpgradeStats,
+    autoUpgradeEquipment: s.autoUpgradeEquipment,
+    autoUpgradeSkills: s.autoUpgradeSkills,
+    lastSavedAt: nowMs,
+    numberSquishV1: true,
+  };
+}
+
+function parsePersistedSavePatch(parsed: Partial<PersistedSaveData>) {
+  const base = createInitialCoreState();
+  const rawStats = parsed.stats ?? {};
+  const stats: StatLevels = {
+    attack: rawStats.attack ?? base.stats.attack,
+    skillDamage: rawStats.skillDamage ?? rawStats.maxHp ?? base.stats.skillDamage,
+    attackSpeed: rawStats.attackSpeed ?? base.stats.attackSpeed,
+    critRate: rawStats.critRate ?? base.stats.critRate,
+    critDamage: rawStats.critDamage ?? base.stats.critDamage,
+  };
+  const ownedEquipment = parsed.ownedEquipment ?? base.ownedEquipment;
+  const equipped = { ...base.equipped, ...parsed.equipped };
+  const ownedPets = parsed.ownedPets ?? {};
+  const legacyPetId =
+    parsed.equippedPetId && ownedPets[parsed.equippedPetId]?.level > 0
+      ? parsed.equippedPetId
+      : null;
+  const rawByBranch = parsed.equippedPetsByBranch;
+  const equippedPetsByBranch: Record<ClassBranch, string | null> = rawByBranch
+    ? {
+        knight:
+          rawByBranch.knight && ownedPets[rawByBranch.knight]?.level > 0
+            ? rawByBranch.knight
+            : null,
+        archer:
+          rawByBranch.archer && ownedPets[rawByBranch.archer]?.level > 0
+            ? rawByBranch.archer
+            : null,
+        mage:
+          rawByBranch.mage && ownedPets[rawByBranch.mage]?.level > 0
+            ? rawByBranch.mage
+            : null,
+      }
+    : {
+        knight: legacyPetId,
+        archer: legacyPetId,
+        mage: legacyPetId,
+      };
+  const loadedClassId =
+    parsed.heroClassId && HERO_CLASSES_BY_ID[parsed.heroClassId]
+      ? parsed.heroClassId
+      : 'novice';
+  const loadedBranch = (
+    HERO_CLASSES_BY_ID[loadedClassId] ?? HERO_CLASSES_BY_ID.novice
+  ).branch;
+  const equippedPetId = equippedPetsByBranch[loadedBranch] ?? legacyPetId;
+  const ownedRelics = parsed.ownedRelics ?? {};
+  const heroLevel = Math.max(1, parsed.heroLevel ?? 1);
+  const heroBossMaxUnlockedTier = Math.max(1, parsed.heroBossMaxUnlockedTier ?? 1);
+  const heroBossAutoTier = Math.max(
+    1,
+    Math.min(heroBossMaxUnlockedTier, parsed.heroBossAutoTier ?? heroBossMaxUnlockedTier),
+  );
+  const selectedHeroBossContracts = Array.isArray(parsed.selectedHeroBossContracts)
+    ? parsed.selectedHeroBossContracts.filter(isValidHeroBossContractId)
+    : [];
+  const petSummonPity = Math.max(
+    0,
+    Math.min(SUMMON_PITY_THRESHOLD - 1, Math.floor(parsed.petSummonPity ?? 0)),
+  );
+  const relicSummonPity = Math.max(
+    0,
+    Math.min(SUMMON_PITY_THRESHOLD - 1, Math.floor(parsed.relicSummonPity ?? 0)),
+  );
+  const soundEnabled = parsed.soundEnabled ?? true;
+  soundEngine.setEnabled(soundEnabled);
+
+  const mergedSkillLevels = createSkillMap(1);
+  if (parsed.skillLevels) {
+    for (const skill of SKILLS) {
+      const savedLv = parsed.skillLevels[skill.id];
+      if (typeof savedLv === 'number' && savedLv >= 1) {
+        mergedSkillLevels[skill.id] = savedLv;
+      }
+    }
+  }
+
+  const nowMs = Date.now();
+  const elapsedSec =
+    typeof parsed.lastSavedAt === 'number'
+      ? Math.max(0, (nowMs - parsed.lastSavedAt) / 1000)
+      : 0;
+  const savedBossCdSec =
+    typeof parsed.heroBossCooldownSec === 'number'
+      ? Math.max(0, parsed.heroBossCooldownSec - elapsedSec)
+      : typeof parsed.heroBossCooldownUntil === 'number'
+        ? Math.max(0, (parsed.heroBossCooldownUntil - nowMs) / 1000)
+        : 0;
+
+  const loadedStage = Math.max(1, parsed.currentStage ?? 1);
+  let loadedGold = Math.max(0, parsed.gold ?? base.gold);
+  let loadedExp = Math.max(0, parsed.heroExp ?? 0);
+
+  if (!parsed.numberSquishV1) {
+    const oldStageGold = 12 * Math.pow(1.18, Math.max(0, loadedStage - 1));
+    const newStageGold = 5 * Math.pow(1.09, Math.max(0, loadedStage - 1));
+    const goldRatio = Math.min(1, newStageGold / Math.max(1, oldStageGold));
+    loadedGold = Math.max(0, Math.round(loadedGold * goldRatio));
+
+    const oldReqExp = Math.floor(50 * Math.pow(1.22, Math.max(0, heroLevel - 1)));
+    const newReqExp = calcExpToNextLevel(heroLevel);
+    const expProgressRatio = Math.min(
+      0.99,
+      Math.max(0, loadedExp / Math.max(1, oldReqExp)),
+    );
+    loadedExp = Math.floor(expProgressRatio * newReqExp);
+  }
+
+  return {
+    gold: loadedGold,
+    gems: Math.max(0, parsed.gems ?? base.gems),
+    heroLevel,
+    heroExp: loadedExp,
+    heroClassId: loadedClassId,
+    currentStage: loadedStage,
+    maxUnlockedStage: Math.max(1, parsed.maxUnlockedStage ?? 1),
+    currentWave: 1,
+    isBossFight: false,
+    isFarmingRepeat: Boolean(parsed.isFarmingRepeat),
+    autoBossChallenge: parsed.autoBossChallenge ?? true,
+    heroBossMaxUnlockedTier,
+    heroBossCooldownSec: savedBossCdSec,
+    activeHeroBossTier: null,
+    autoHeroBoss: parsed.autoHeroBoss ?? false,
+    heroBossAutoTier,
+    heroBossAutoRetryAfter: 0,
+    selectedHeroBossContracts,
+    stats,
+    ownedEquipment,
+    equipped,
+    ownedPets,
+    equippedPetId,
+    equippedPetsByBranch,
+    petSummonPity,
+    ownedRelics,
+    relicSummonPity,
+    skillLevels: mergedSkillLevels,
+    autoSkill: parsed.autoSkill ?? true,
+    autoTagSwitch: parsed.autoTagSwitch ?? true,
+    fxEnabled: parsed.fxEnabled ?? true,
+    soundEnabled,
+    gameSpeed:
+      parsed.gameSpeed === 2 || parsed.gameSpeed === 3 ? parsed.gameSpeed : (1 as const),
+    autoUpgradeStats: parsed.autoUpgradeStats ?? false,
+    autoUpgradeEquipment: parsed.autoUpgradeEquipment ?? false,
+    autoUpgradeSkills: parsed.autoUpgradeSkills ?? false,
+    lastSavedAt: parsed.lastSavedAt ?? nowMs,
+  };
+}

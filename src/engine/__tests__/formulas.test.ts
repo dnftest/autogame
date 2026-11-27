@@ -1002,4 +1002,76 @@ describe('5 unique enhancement systems', () => {
       (globalThis as { localStorage?: unknown }).localStorage = originalStorage;
     }
   });
+
+  it('7. save.json export/import and syncSaveFileOnBoot handle cross-PC sync cleanly', async () => {
+    const store = useGameStore.getState();
+    useGameStore.setState({ gold: 777, currentStage: 12, maxUnlockedStage: 12, gems: 320 });
+
+    const exported = store.exportSaveJson();
+    store.resetGame();
+    expect(useGameStore.getState().currentStage).toBe(1);
+
+    expect(store.importSaveJson('{invalid')).toBe(false);
+    expect(store.importSaveJson(exported)).toBe(true);
+    expect(useGameStore.getState().gold).toBe(777);
+    expect(useGameStore.getState().currentStage).toBe(12);
+
+    // Mock browser window + fetch + localStorage for syncSaveFileOnBoot
+    const storageMap: Record<string, string> = {};
+    const mockStorage = {
+      getItem: (k: string) => storageMap[k] ?? null,
+      setItem: (k: string, v: string) => {
+        storageMap[k] = v;
+      },
+      removeItem: (k: string) => {
+        delete storageMap[k];
+      },
+    };
+    const origStorage = (globalThis as { localStorage?: unknown }).localStorage;
+    const origWindow = (globalThis as { window?: unknown }).window;
+    const origFetch = globalThis.fetch;
+
+    const postedBodies: string[] = [];
+    (globalThis as { localStorage?: unknown }).localStorage = mockStorage;
+    (globalThis as { window?: unknown }).window = { location: { protocol: 'http:' } };
+
+    try {
+      // Case A: Home PC with empty localStorage loads newer save.json from server
+      const remotePayload = JSON.parse(exported) as Record<string, unknown>;
+      remotePayload.currentStage = 44;
+      remotePayload.gold = 9999;
+      remotePayload.lastSavedAt = Date.now() + 10_000;
+
+      globalThis.fetch = (async (_url: string | URL | Request, init?: RequestInit) => {
+        if (init?.method === 'POST' && typeof init.body === 'string') {
+          postedBodies.push(init.body);
+          return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        }
+        return new Response(JSON.stringify({ exists: true, data: remotePayload }), {
+          status: 200,
+        });
+      }) as typeof fetch;
+
+      store.resetGame();
+      await useGameStore.getState().syncSaveFileOnBoot();
+      expect(useGameStore.getState().currentStage).toBe(44);
+      expect(useGameStore.getState().gold).toBe(9999);
+      expect(storageMap[SAVE_STORAGE_KEY]).toBeTruthy();
+
+      // Case B: Local progress is newer than save.json -> uploads local progress to /api/save
+      const newerLocal = JSON.parse(exported) as Record<string, unknown>;
+      newerLocal.currentStage = 55;
+      newerLocal.lastSavedAt = Date.now() + 50_000;
+      storageMap[SAVE_STORAGE_KEY] = JSON.stringify(newerLocal);
+      useGameStore.setState({ currentStage: 55 });
+
+      await useGameStore.getState().syncSaveFileOnBoot();
+      expect(postedBodies.length).toBeGreaterThan(0);
+      expect(JSON.parse(postedBodies[postedBodies.length - 1]).currentStage).toBe(55);
+    } finally {
+      (globalThis as { localStorage?: unknown }).localStorage = origStorage;
+      (globalThis as { window?: unknown }).window = origWindow;
+      globalThis.fetch = origFetch;
+    }
+  });
 });

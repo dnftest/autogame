@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
   Combine,
   Crown,
+  Download,
   Flame,
   Gem,
   Settings,
@@ -11,6 +12,7 @@ import {
   Sparkles,
   Sword,
   TrendingUp,
+  Upload,
   Wind,
   Zap,
 } from 'lucide-react';
@@ -1270,6 +1272,7 @@ function CompanionsRelicsTab() {
 
 function SettingsTab() {
   const [confirmReset, setConfirmReset] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const currentStage = useGameStore((s) => s.currentStage);
   const maxUnlockedStage = useGameStore((s) => s.maxUnlockedStage);
@@ -1296,6 +1299,8 @@ function SettingsTab() {
   const toggleAutoUpgradeSkills = useGameStore((s) => s.toggleAutoUpgradeSkills);
   const simulateOfflineTime = useGameStore((s) => s.simulateOfflineTime);
   const saveGame = useGameStore((s) => s.saveGame);
+  const exportSaveJson = useGameStore((s) => s.exportSaveJson);
+  const importSaveJson = useGameStore((s) => s.importSaveJson);
   const resetGame = useGameStore((s) => s.resetGame);
   const setBanner = useGameStore((s) => s.setBanner);
 
@@ -1546,6 +1551,55 @@ function SettingsTab() {
           >
             지금 저장
           </button>
+        </div>
+
+        {/* save.json File Backup & Restore */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const json = exportSaveJson();
+              const blob = new Blob([json], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = 'save.json';
+              link.click();
+              URL.revokeObjectURL(url);
+              setBanner('save.json 파일로 내보냈습니다!', 'success');
+            }}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/35 bg-emerald-950/35 py-2.5 text-xs font-bold text-emerald-200 active:scale-95"
+          >
+            <Download className="h-3.5 w-3.5" />
+            save.json 내보내기
+          </button>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-sky-500/35 bg-sky-950/35 py-2.5 text-xs font-bold text-sky-200 active:scale-95"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            save.json 불러오기
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => {
+                if (typeof reader.result === 'string') {
+                  importSaveJson(reader.result);
+                }
+              };
+              reader.readAsText(file);
+              e.target.value = '';
+            }}
+          />
         </div>
 
         {!confirmReset ? (
