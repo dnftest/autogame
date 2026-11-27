@@ -1,0 +1,23 @@
+# Dependencies & build outputs
+node_modules/
+dist/
+coverage/
+
+# Environment & secrets
+.env
+.env.*
+
+# Logs & OS artifacts
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+
+# Capacitor / Android build artifacts
+android/.gradle/
+android/app/build/
+android/build/

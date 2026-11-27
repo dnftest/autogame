@@ -1,0 +1,194 @@
+{
+  "version": 1,
+  "assets": {
+    "hero_idle": {
+      "path": "assets/characters/hero_idle.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 6
+    },
+    "hero_attack": {
+      "path": "assets/characters/hero_attack.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 12
+    },
+    "monster_slime": {
+      "path": "assets/monsters/monster_slime.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 6
+    },
+    "monster_goblin": {
+      "path": "assets/monsters/monster_goblin.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 7
+    },
+    "monster_orc": {
+      "path": "assets/monsters/monster_orc.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 6
+    },
+    "monster_skeleton": {
+      "path": "assets/monsters/monster_skeleton.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 7
+    },
+    "monster_wyvern": {
+      "path": "assets/monsters/monster_wyvern.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 8
+    },
+    "boss_dragon": {
+      "path": "assets/monsters/boss_dragon.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 6
+    },
+    "bg_meadow": {
+      "path": "assets/backgrounds/bg_meadow.webp",
+      "width": 1080,
+      "height": 2400
+    },
+    "bg_forest": {
+      "path": "assets/backgrounds/bg_forest.webp",
+      "width": 1080,
+      "height": 2400
+    },
+    "bg_dungeon": {
+      "path": "assets/backgrounds/bg_dungeon.webp",
+      "width": 1080,
+      "height": 2400
+    },
+    "bg_volcano": {
+      "path": "assets/backgrounds/bg_volcano.webp",
+      "width": 1080,
+      "height": 2400
+    },
+    "icon_weapon": {
+      "path": "assets/icons/icon_weapon.png",
+      "width": 128,
+      "height": 128
+    },
+    "icon_armor": {
+      "path": "assets/icons/icon_armor.png",
+      "width": 128,
+      "height": 128
+    },
+    "icon_ring": {
+      "path": "assets/icons/icon_ring.png",
+      "width": 128,
+      "height": 128
+    },
+    "fx_slash": {
+      "path": "assets/effects/fx_slash.png",
+      "width": 256,
+      "height": 256,
+      "frames": 4,
+      "fps": 16
+    },
+    "fx_heal": {
+      "path": "assets/effects/fx_heal.png",
+      "width": 256,
+      "height": 256,
+      "frames": 4,
+      "fps": 10
+    },
+    "pet_slime_pup": {
+      "path": "assets/pets/pet_slime_pup.png",
+      "width": 256,
+      "height": 256,
+      "frames": 4,
+      "fps": 6
+    },
+    "pet_forest_wolf": {
+      "path": "assets/pets/pet_forest_wolf.png",
+      "width": 256,
+      "height": 256,
+      "frames": 4,
+      "fps": 6
+    },
+    "pet_owl_mage": {
+      "path": "assets/pets/pet_owl_mage.png",
+      "width": 256,
+      "height": 256,
+      "frames": 4,
+      "fps": 6
+    },
+    "pet_griffin": {
+      "path": "assets/pets/pet_griffin.png",
+      "width": 256,
+      "height": 256,
+      "frames": 4,
+      "fps": 6
+    },
+    "pet_baby_dragon": {
+      "path": "assets/pets/pet_baby_dragon.png",
+      "width": 256,
+      "height": 256,
+      "frames": 4,
+      "fps": 6
+    },
+    "pet_phoenix": {
+      "path": "assets/pets/pet_phoenix.png",
+      "width": 256,
+      "height": 256,
+      "frames": 4,
+      "fps": 6
+    },
+    "hero_paladin": {
+      "path": "assets/characters/hero_paladin.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 6
+    },
+    "hero_archer": {
+      "path": "assets/characters/hero_archer.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 6
+    },
+    "hero_mage": {
+      "path": "assets/characters/hero_mage.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 6
+    },
+    "hero_dragon_knight": {
+      "path": "assets/characters/hero_dragon_knight.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 6
+    },
+    "hero_wind_sniper": {
+      "path": "assets/characters/hero_wind_sniper.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 6
+    },
+    "hero_archmage": {
+      "path": "assets/characters/hero_archmage.png",
+      "width": 512,
+      "height": 512,
+      "frames": 4,
+      "fps": 6
+    }
+  }
+}
