@@ -4,7 +4,7 @@
   "gems": 106520,
   "heroLevel": 196,
   "heroExp": 260075091200,
-  "heroClassId": "wind_sniper",
+  "heroClassId": "archmage",
   "currentStage": 258,
   "maxUnlockedStage": 258,
   "isFarmingRepeat": false,
@@ -190,6 +190,6 @@
   "autoUpgradeStats": true,
   "autoUpgradeEquipment": true,
   "autoUpgradeSkills": true,
-  "lastSavedAt": 1795771802836,
+  "lastSavedAt": 1795772301353,
   "numberSquishV1": true
 }
